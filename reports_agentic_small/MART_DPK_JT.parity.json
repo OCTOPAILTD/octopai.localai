@@ -1,0 +1,70 @@
+{
+  "file_name": "MART_DPK_JT.sql",
+  "baseline_found": true,
+  "statement_count_match": true,
+  "statement_order_match": false,
+  "target_sequence_match": true,
+  "projection_policy_match": false,
+  "clause_shape_match": false,
+  "score": 0.4,
+  "details": {
+    "baseline_statement_count": 2,
+    "generated_statement_count": 2,
+    "baseline_kinds": [
+      "with_insert",
+      "insert"
+    ],
+    "generated_kinds": [
+      "insert",
+      "insert"
+    ],
+    "baseline_targets": [
+      "#temp_table",
+      "prd_acl_datalake.mart_dpk_jt"
+    ],
+    "generated_targets": [
+      "#temp_table",
+      "prd_acl_datalake.mart_dpk_jt"
+    ],
+    "baseline_projection_policy": [
+      "explicit",
+      "star"
+    ],
+    "generated_projection_policy": [
+      "explicit",
+      "explicit"
+    ],
+    "baseline_shape": [
+      {
+        "has_with": 1,
+        "union_all": 1,
+        "where": 0,
+        "partition": 0,
+        "left_join_subquery": 0
+      },
+      {
+        "has_with": 0,
+        "union_all": 0,
+        "where": 0,
+        "partition": 0,
+        "left_join_subquery": 0
+      }
+    ],
+    "generated_shape": [
+      {
+        "has_with": 0,
+        "union_all": 1,
+        "where": 0,
+        "partition": 0,
+        "left_join_subquery": 0
+      },
+      {
+        "has_with": 0,
+        "union_all": 0,
+        "where": 0,
+        "partition": 0,
+        "left_join_subquery": 0
+      }
+    ]
+  }
+}

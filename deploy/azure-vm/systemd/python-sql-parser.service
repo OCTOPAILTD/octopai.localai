@@ -1,0 +1,20 @@
+[Unit]
+Description=Python to SQL Parser API
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/python-sql-parser
+Environment=PARSER_SERVICE_HOST=0.0.0.0
+Environment=PARSER_SERVICE_PORT=8080
+Environment=LOCAL_LLM_BASE_URL=http://127.0.0.1:8000/v1
+Environment=LOCAL_LLM_SQL_REPAIR_BASE_URL=http://127.0.0.1:8001/v1
+ExecStart=/usr/bin/python3 /opt/python-sql-parser/run_service.py
+Restart=always
+RestartSec=5
+User=azureuser
+Group=azureuser
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,0 +1,34 @@
+2026-02-25 16:41:34,644 [INFORMATION] - OctopaiLogger is created... LogFilePath=[C:\Program Files (x86)\Octopai\Service\log\FOLDER_104_2502202616413420260225.log]
+2026-02-25 16:41:34,655 [INFORMATION] - Starting Extraction FOLDER
+2026-02-25 16:41:34,655 [INFORMATION] - Connection id 104
+2026-02-25 16:41:34,668 [INFORMATION] - Octopai Client Version:10.0.31.692
+2026-02-25 16:41:34,669 [INFORMATION] - Testing connection 104 before the extraction
+2026-02-25 16:41:34,678 [INFORMATION] - Testing connection 104 completed
+2026-02-25 16:41:34,678 [INFORMATION] - Test before run completed
+2026-02-25 16:41:34,685 [INFORMATION] - Starting to extract
+2026-02-25 16:41:36,191 [INFORMATION] - parameter -> TargetPath - C:\Program Files (x86)\Octopai\Service\uploads\python-scripts
+2026-02-25 16:41:36,191 [INFORMATION] - parameter -> ToolName - Python
+2026-02-25 16:41:36,192 [INFORMATION] - parameter -> ConnectionString - Failed to censor connection string.
+2026-02-25 16:41:36,192 [INFORMATION] - parameter -> restrictedPaths - 
+2026-02-25 16:41:36,192 [INFORMATION] - parameter -> restrictedFiles - 
+2026-02-25 16:41:36,192 [INFORMATION] - parameter -> AuthenticationType - None
+2026-02-25 16:41:37,712 [INFORMATION] - Get Files *.txt,*.csv,*.sql,*.log,*.xml,*.xls,*.xlsx,*.json,*.sh,*.out,*.bteq,*.btq,*.ctl,*.rep,*.pl,*.ksh,*.py,*.zip,*.cs,*.java to C:\Program Files (x86)\Octopai\Service\TMP\FILE
+2026-02-25 16:41:37,712 [INFORMATION] - Files to be excluded: 
+2026-02-25 16:41:37,712 [INFORMATION] - Folders to be excluded: 
+2026-02-25 16:41:37,713 [INFORMATION] - File exclude 
+2026-02-25 16:41:37,713 [INFORMATION] - Folder exclude 
+2026-02-25 16:41:37,714 [INFORMATION] - Found 4 Files
+2026-02-25 16:41:37,715 [INFORMATION] - Handle C:\Program Files (x86)\Octopai\Service\uploads\python-scripts\etl_job.py
+2026-02-25 16:41:37,727 [INFORMATION] - Copy etl_job.py Done
+2026-02-25 16:41:37,727 [INFORMATION] - Handle C:\Program Files (x86)\Octopai\Service\uploads\python-scripts\etl_job_scd.py
+2026-02-25 16:41:37,736 [INFORMATION] - Copy etl_job_scd.py Done
+2026-02-25 16:41:37,736 [INFORMATION] - Handle C:\Program Files (x86)\Octopai\Service\uploads\python-scripts\MART_DPK_ICONS.py
+2026-02-25 16:41:37,747 [INFORMATION] - Copy MART_DPK_ICONS.py Done
+2026-02-25 16:41:37,747 [INFORMATION] - Handle C:\Program Files (x86)\Octopai\Service\uploads\python-scripts\MART_DPK_JT.py
+2026-02-25 16:41:37,755 [INFORMATION] - Copy MART_DPK_JT.py Done
+2026-02-25 16:41:37,756 [INFORMATION] - Extraction completed. 4 files were extracted.
+2026-02-25 16:41:37,756 [INFORMATION] - File Location: C:\Program Files (x86)\Octopai\Service\TMP\FILE
+2026-02-25 16:41:37,826 [INFORMATION] - Done Extraction FILE
+2026-02-25 16:41:37,826 [INFORMATION] - Execution Time: 00:00:03.1567559
+2026-02-25 16:41:37,826 [INFORMATION] - Make Connection Xml
+2026-02-25 16:41:37,898 [INFORMATION] - Connection_ID=104 is found, Xml Conn file is creating now...

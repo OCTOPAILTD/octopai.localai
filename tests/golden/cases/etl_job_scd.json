@@ -1,0 +1,12 @@
+{
+  "python_file": "python_files/etl_job_scd.py",
+  "output_sql": "sql_outputs_agentic_small/etl_job_scd.sql",
+  "expected_contains": [
+    "INSERT INTO PRD_ACL_DATALAKE.MART_CUSTOMER_ICONS_SCD_PROD",
+    "PRD_ACL_DATALAKE.MART_CUSTOMER_ICONS_TEMP"
+  ],
+  "expected_not_contains": [
+    "hive_metastore.db.table"
+  ]
+}
+

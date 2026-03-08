@@ -1,0 +1,90 @@
+<VendorConnectionList>
+  <Connections>
+    <Connections>
+      <UserName />
+      <Password>
+      </Password>
+      <Domain />
+      <e_Extractor>FOLDER</e_Extractor>
+      <CustomerID />
+      <ConnectionID>104</ConnectionID>
+      <Vendor>Folder</Vendor>
+      <ConnectionName>PRD-PYTHON-SCRIPTS</ConnectionName>
+      <Secret />
+      <ConnectionString>
+      </ConnectionString>
+      <AuditDbName />
+      <ContentStoreDbName />
+      <Port>0</Port>
+      <ServerName />
+      <LastUpdate>2026-02-25T09:40:49Z</LastUpdate>
+      <CreateDate>2026-02-25T09:40:49Z</CreateDate>
+      <IsActive>true</IsActive>
+      <ResourceLastUpload>2026-02-25T09:40:49Z</ResourceLastUpload>
+      <ToolName>Python</ToolName>
+      <SSRSConnectionString />
+      <FolderIsRecursiveSearch>true</FolderIsRecursiveSearch>
+      <contentUrl />
+      <ExtractorVer />
+      <ClientVer>10.0.31.692</ClientVer>
+      <LastExecution>2026-02-25T16:41:37.8986154+07:00</LastExecution>
+      <SchemaName />
+      <ProjectId />
+      <JsonPath />
+      <region />
+      <Dsn />
+      <AuthenticationType>None</AuthenticationType>
+      <UserDefineCredentials>false</UserDefineCredentials>
+      <IsETL>true</IsETL>
+      <Host />
+      <URL />
+      <ServiceName />
+      <ResourcePath>C:\Program Files (x86)\Octopai\Service\uploads\python-scripts</ResourcePath>
+      <RestrictedExtensions>*.txt,*.csv,*.sql,*.log,*.xml,*.xls,*.xlsx,*.json,*.sh,*.out,*.bteq,*.btq,*.ctl,*.rep,*.pl,*.ksh,*.py,*.zip,*.cs,*.java</RestrictedExtensions>
+      <restrictPath>
+      </restrictPath>
+      <restrictNames>
+      </restrictNames>
+      <restrictFolder>
+      </restrictFolder>
+      <DataBase />
+      <Project />
+      <RootID />
+      <ProjectSource />
+      <javaPath />
+      <JavaHome />
+      <ispowerbiapp />
+      <powerbiappid />
+      <IsEnhanced>false</IsEnhanced>
+      <IsSynonym>false</IsSynonym>
+      <Subscriptionid />
+      <Tenantid />
+      <Clientid>7051ba38-ba93-483c-8f6d-50f73be92dc1</Clientid>
+      <Clientsecret />
+      <ApiVersion />
+      <ResourceGroup />
+      <ParamPath />
+      <DataSource />
+      <WalletPath />
+      <EnvName />
+      <Timeout />
+      <BaseApiUrl />
+      <LoginUrl />
+      <BaseApiUrlFull />
+      <BootstrapServers />
+      <ConnectUrl />
+      <SchemaRegistryUrl />
+      <NifiUrl />
+      <UseProxy>false</UseProxy>
+      <LastSuccessfulExtractionDate>2026-02-25T16:41:37.8472171+07:00</LastSuccessfulExtractionDate>
+      <Type>0</Type>
+      <HdfsUrl />
+      <FolderPath />
+      <KeytabPath />
+      <KerberosPrincipal />
+      <ContainUC>false</ContainUC>
+      <ActionParams>
+      </ActionParams>
+    </Connections>
+  </Connections>
+</VendorConnectionList>

@@ -1,0 +1,109 @@
+{
+  "file_path": "/Users/noamketer/Octopai/vLLM/python_files/etl_job.py",
+  "unit_count": 3,
+  "candidate_sql_count": 2,
+  "validation_ok": true,
+  "validation_errors": [],
+  "retries": 0,
+  "statement_count": 2,
+  "metadata": {
+    "model": "mlx-community/Qwen2.5-Coder-3B-Instruct-4bit",
+    "sql_repair_model": "mlx-community/Qwen2.5-Coder-3B-Instruct-4bit",
+    "sql_repair_base_url": "http://127.0.0.1:8000/v1",
+    "chunk_max_tokens": 512,
+    "refine_max_tokens": 1536,
+    "dry_run": true,
+    "detected_ops": 4,
+    "baseline_parity": {
+      "file_name": "etl_job.sql",
+      "baseline_found": true,
+      "statement_count_match": false,
+      "statement_order_match": false,
+      "target_sequence_match": false,
+      "projection_policy_match": false,
+      "clause_shape_match": false,
+      "score": 0.0,
+      "details": {
+        "baseline_statement_count": 4,
+        "generated_statement_count": 2,
+        "baseline_kinds": [
+          "insert",
+          "insert",
+          "insert",
+          "insert"
+        ],
+        "generated_kinds": [
+          "insert",
+          "insert"
+        ],
+        "baseline_targets": [
+          "#temp_table",
+          "prd_acl_datalake.master_cta",
+          "prd_acl_datalake.master_cta",
+          "prd_acl_datalake.master_cta"
+        ],
+        "generated_targets": [
+          "#temp_table",
+          "prd_acl_datalake.master_cta"
+        ],
+        "baseline_projection_policy": [
+          "star",
+          "star",
+          "star",
+          "star"
+        ],
+        "generated_projection_policy": [
+          "star",
+          "explicit"
+        ],
+        "baseline_shape": [
+          {
+            "has_with": 0,
+            "union_all": 1,
+            "where": 1,
+            "partition": 0,
+            "left_join_subquery": 1
+          },
+          {
+            "has_with": 0,
+            "union_all": 0,
+            "where": 0,
+            "partition": 0,
+            "left_join_subquery": 0
+          },
+          {
+            "has_with": 0,
+            "union_all": 0,
+            "where": 0,
+            "partition": 0,
+            "left_join_subquery": 0
+          },
+          {
+            "has_with": 0,
+            "union_all": 0,
+            "where": 0,
+            "partition": 0,
+            "left_join_subquery": 0
+          }
+        ],
+        "generated_shape": [
+          {
+            "has_with": 0,
+            "union_all": 1,
+            "where": 0,
+            "partition": 0,
+            "left_join_subquery": 1
+          },
+          {
+            "has_with": 0,
+            "union_all": 0,
+            "where": 0,
+            "partition": 1,
+            "left_join_subquery": 0
+          }
+        ]
+      }
+    }
+  },
+  "generated_at": "2026-03-05T15:28:40.766813+00:00"
+}

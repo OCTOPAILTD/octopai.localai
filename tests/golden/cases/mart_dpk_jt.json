@@ -1,0 +1,16 @@
+{
+  "python_file": "python_files/MART_DPK_JT.py",
+  "output_sql": "sql_outputs_agentic_small/MART_DPK_JT.sql",
+  "expected_contains": [
+    "INSERT INTO temp_table",
+    "INSERT INTO prd_acl_datalake.MART_DPK_JT"
+  ],
+  "expected_not_contains": [
+    "ON 1=1",
+    "hive_metastore.db.table"
+  ],
+  "expected_edges": [
+    "temp_table.id_number<-sri_155_103_jt0001depx.id_number",
+    "prd_acl_datalake.mart_dpk_jt.id_number<-id_number"
+  ]
+}

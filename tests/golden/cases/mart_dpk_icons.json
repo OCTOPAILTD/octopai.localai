@@ -1,0 +1,18 @@
+{
+  "python_file": "python_files/MART_DPK_ICONS.py",
+  "output_sql": "sql_outputs_agentic_small/MART_DPK_ICONS.sql",
+  "expected_contains": [
+    "INSERT INTO temp_table",
+    "INSERT INTO prd_acl_datalake.MART_DPK_ICONS"
+  ],
+  "expected_not_contains": [
+    "ON 1=1",
+    "hive_metastore.db.table"
+  ],
+  "expected_edges": [
+    "temp_table.id_number<-sri_101_118_invm.id_number",
+    "temp_table.product_name<-sri_101_115_depp.descript",
+    "prd_acl_datalake.mart_dpk_icons.id_number<-id_number",
+    "prd_acl_datalake.mart_dpk_icons.product_name<-product_name"
+  ]
+}

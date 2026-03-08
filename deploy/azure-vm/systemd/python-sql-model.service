@@ -1,0 +1,17 @@
+[Unit]
+Description=MLX Model Server (Python to SQL)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/python-sql-parser
+Environment=MODEL_ID=mlx-community/Qwen2.5-Coder-3B-Instruct-4bit
+ExecStart=/opt/homebrew/bin/python3.11 -m mlx_lm.server --model ${MODEL_ID} --host 127.0.0.1 --port 8000 --max-tokens 1536 --log-level INFO
+Restart=always
+RestartSec=5
+User=azureuser
+Group=azureuser
+
+[Install]
+WantedBy=multi-user.target
+

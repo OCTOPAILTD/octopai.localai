@@ -1,0 +1,11 @@
+{
+  "file_path": "python_files/minimal.py",
+  "operations": [
+    {
+      "op_id": "op_1",
+      "op_type": "write",
+      "target_assets": ["target_table"]
+    }
+  ]
+}
+

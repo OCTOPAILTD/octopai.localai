@@ -1,0 +1,19 @@
+{
+  "file_path": "/Users/noamketer/Octopai/vLLM/python_files/etl_job.py",
+  "unit_count": 3,
+  "candidate_sql_count": 1,
+  "validation_ok": false,
+  "validation_errors": [
+    "Statement 1 includes WHERE, which is forbidden."
+  ],
+  "retries": 1,
+  "statement_count": 2,
+  "metadata": {
+    "model": "mlx-community/Qwen2.5-Coder-32B-Instruct-4bit",
+    "chunk_max_tokens": 1024,
+    "refine_max_tokens": 4096,
+    "dry_run": false,
+    "detected_ops": 4
+  },
+  "generated_at": "2026-02-26T07:27:17.089256+00:00"
+}

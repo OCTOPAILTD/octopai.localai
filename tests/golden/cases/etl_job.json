@@ -1,0 +1,12 @@
+{
+  "python_file": "python_files/etl_job.py",
+  "output_sql": "sql_outputs_agentic_small/etl_job.sql",
+  "expected_contains": [
+    "INSERT INTO PRD_ACL_DATALAKE.MASTER_CTA",
+    "acl_datalake.mart_cta"
+  ],
+  "expected_not_contains": [
+    "hive_metastore.db.table"
+  ]
+}
+
