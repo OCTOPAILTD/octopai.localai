@@ -6,13 +6,23 @@ from types import SimpleNamespace
 from threading import BoundedSemaphore
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 
 from src.config import build_runtime_config
 from src.errors import ParserServiceError
 from src.logging_utils import get_logger
 from src.metrics import MetricsRegistry
 from src.runner import run_agentic_pipeline
-from src.service.models import BatchParseRequest, BatchParseResponse, ParseRequest, ParseResponse
+from src.service.models import (
+    BatchParseRequest,
+    BatchParseResponse,
+    ChatCompletionChunk,
+    ChatCompletionChunkChoice,
+    ChatCompletionChunkDelta,
+    ChatCompletionRequest,
+    ParseRequest,
+    ParseResponse,
+)
 
 
 app = FastAPI(title="Python-to-SQL Parser Service", version="1.0.0")
@@ -120,4 +130,61 @@ def parse_batch(request: BatchParseRequest) -> BatchParseResponse:
         raise HTTPException(status_code=400, detail=f"Batch too large. Max {max_batch}.")
     results = [_run_single(item) for item in request.requests]
     return BatchParseResponse(results=results)
+
+
+@app.post("/v1/chat/completions")
+def chat_completions(request: ChatCompletionRequest) -> StreamingResponse:
+    """OpenAI-compatible streaming chat completions endpoint.
+
+    The C# engine sends the system prompt as the first system message and the
+    Python script as the last user message.  The full agentic pipeline runs
+    synchronously and the resulting SQL is returned as a single SSE chunk so
+    that the OpenAI .NET SDK's CompleteChatStreamingAsync parser receives a
+    valid streaming response without any interface changes on the C# side.
+    """
+    user_messages = [m for m in request.messages if m.role == "user"]
+    if not user_messages:
+        raise HTTPException(status_code=400, detail="No user message found in messages.")
+
+    python_code = user_messages[-1].content
+    parse_req = ParseRequest(python_code=python_code, max_tokens=request.max_tokens)
+
+    # Run the full pipeline before streaming so errors surface as proper HTTP codes.
+    result = _run_single(parse_req)
+
+    chunk_id = f"chatcmpl-local-{int(time.time())}"
+    created = int(time.time())
+    model_name = request.model
+
+    def generate():
+        # Content chunk — carries the full SQL result.
+        content_chunk = ChatCompletionChunk(
+            id=chunk_id,
+            created=created,
+            model=model_name,
+            choices=[
+                ChatCompletionChunkChoice(
+                    delta=ChatCompletionChunkDelta(role="assistant", content=result.sql),
+                    finish_reason=None,
+                )
+            ],
+        )
+        yield f"data: {content_chunk.model_dump_json()}\n\n"
+
+        # Stop chunk — signals end of stream to the SDK.
+        stop_chunk = ChatCompletionChunk(
+            id=chunk_id,
+            created=created,
+            model=model_name,
+            choices=[
+                ChatCompletionChunkChoice(
+                    delta=ChatCompletionChunkDelta(),
+                    finish_reason="stop",
+                )
+            ],
+        )
+        yield f"data: {stop_chunk.model_dump_json()}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
