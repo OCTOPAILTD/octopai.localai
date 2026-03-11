@@ -85,6 +85,16 @@ def main() -> int:
     parser.add_argument("--prompt-file", default="prompt.txt", help="System prompt file.")
     parser.add_argument("--output-dir", default="sql_outputs", help="Directory for SQL outputs.")
     parser.add_argument(
+        "--python-model",
+        default="",
+        help="Agentic only: optional model override for Python structuring/chunk stage.",
+    )
+    parser.add_argument(
+        "--python-base-url",
+        default="",
+        help="Agentic only: optional endpoint override for Python structuring/chunk stage.",
+    )
+    parser.add_argument(
         "--sql-repair-model",
         default="",
         help="Agentic only: optional model override for SQL refine/repair stages.",
@@ -170,6 +180,10 @@ def main() -> int:
             args.prompt_file,
             "--output-dir",
             args.output_dir,
+            "--python-model",
+            args.python_model,
+            "--python-base-url",
+            args.python_base_url,
             "--sql-repair-model",
             args.sql_repair_model,
             "--sql-repair-base-url",
@@ -238,7 +252,7 @@ def main() -> int:
 
     base_url = os.getenv("LOCAL_LLM_BASE_URL", "http://127.0.0.1:8000/v1")
     api_key = os.getenv("LOCAL_LLM_API_KEY", "")
-    model = os.getenv("LOCAL_LLM_MODEL", "mlx-community/Qwen2.5-Coder-3B-Instruct-4bit")
+    model = os.getenv("LOCAL_LLM_MODEL", "ibm-granite/granite-3.1-3b-a800m-instruct")
 
     print(f"Using model: {model}")
     print(f"Endpoint: {base_url}")

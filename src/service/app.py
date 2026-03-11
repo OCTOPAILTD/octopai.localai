@@ -5,7 +5,7 @@ import time
 from types import SimpleNamespace
 from threading import BoundedSemaphore
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 
 from src.config import build_runtime_config
 from src.errors import ParserServiceError
@@ -40,6 +40,7 @@ def _build_cfg_for_request(req: ParseRequest, file_path: str) -> object:
         max_validation_retries=int(os.getenv("LOCAL_LLM_MAX_VALIDATION_RETRIES", "1")),
         strict_validation=req.strict_validation,
         dialect=req.dialect,
+        compliance_profile=req.compliance_profile,
         dry_run=False,
     )
     return build_runtime_config(args)
@@ -110,6 +111,46 @@ def metrics() -> dict[str, int | float]:
 
 @app.post("/parse", response_model=ParseResponse)
 def parse(request: ParseRequest) -> ParseResponse:
+    return _run_single(request)
+
+
+@app.post("/parse/file", response_model=ParseResponse)
+async def parse_file(
+    file: UploadFile = File(...),
+    prompt_file: str = Form("prompt_short.txt"),
+    output_dir: str = Form("sql_outputs_service"),
+    report_dir: str = Form("reports_service"),
+    max_tokens: int = Form(1536),
+    strict_validation: bool = Form(False),
+    dialect: str = Form("tsql"),
+    compliance_profile: str = Form("strict"),
+) -> ParseResponse:
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Uploaded file must have a filename.")
+    if not file.filename.lower().endswith(".py"):
+        raise HTTPException(status_code=400, detail="Only .py files are supported.")
+
+    payload = await file.read()
+    max_file_bytes = int(os.getenv("PARSER_MAX_FILE_BYTES", "1048576"))
+    if len(payload) > max_file_bytes:
+        raise HTTPException(status_code=413, detail="Uploaded file exceeds max allowed bytes.")
+
+    try:
+        python_code = payload.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise HTTPException(status_code=400, detail="Uploaded file must be UTF-8 encoded.") from exc
+
+    request = ParseRequest(
+        python_code=python_code,
+        file_name=Path(file.filename).name,
+        prompt_file=prompt_file,
+        output_dir=output_dir,
+        report_dir=report_dir,
+        max_tokens=max_tokens,
+        strict_validation=strict_validation,
+        dialect=dialect,
+        compliance_profile=compliance_profile,
+    )
     return _run_single(request)
 
 

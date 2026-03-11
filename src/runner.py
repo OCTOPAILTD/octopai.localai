@@ -85,6 +85,114 @@ def substitute_known_variables(sql_text: str, variables: dict[str, str]) -> str:
     return current
 
 
+def enforce_asset_case_from_ir(sql_text: str, ir: LineageIR) -> str:
+    if not sql_text:
+        return sql_text
+
+    preferred_by_norm: dict[str, str] = {}
+
+    def _register(asset: str) -> None:
+        token = asset.strip().strip("\"'")
+        if not token or "{" in token or "}" in token:
+            return
+        # Limit to asset-like identifiers (schema.table or temp objects).
+        if "." not in token and not token.startswith("#"):
+            return
+        norm = _normalize_asset(token)
+        if norm not in preferred_by_norm:
+            preferred_by_norm[norm] = token
+
+    for op in ir.operations:
+        for asset in (op.source_assets + op.target_assets):
+            if isinstance(asset, str):
+                _register(asset)
+    for value in ir.variables.values():
+        if isinstance(value, str):
+            _register(value)
+
+    current = sql_text
+    for norm, preferred in sorted(preferred_by_norm.items(), key=lambda item: len(item[0]), reverse=True):
+        pattern = re.compile(
+            rf"(?<![A-Za-z0-9_#]){re.escape(norm)}(?![A-Za-z0-9_])",
+            flags=re.IGNORECASE,
+        )
+        current = pattern.sub(preferred, current)
+    return current
+
+
+def enforce_column_case_from_ir(sql_text: str, ir: LineageIR) -> str:
+    if not sql_text:
+        return sql_text
+
+    sql_keywords = {
+        "select", "from", "where", "join", "left", "right", "inner", "outer", "full",
+        "on", "and", "or", "as", "insert", "into", "update", "set", "merge", "using",
+        "when", "then", "case", "end", "with", "over", "partition", "by", "order",
+        "group", "having", "union", "all", "distinct", "in", "is", "null", "not",
+        "between", "like", "exists", "cast", "date_add", "row_number",
+    }
+
+    preferred_by_norm: dict[str, str] = {}
+
+    def _register_col(col: str) -> None:
+        token = col.strip().strip("\"'`")
+        if not token:
+            return
+        if "{" in token or "}" in token:
+            return
+        # Keep only plain identifiers (not dotted assets or expressions).
+        if "." in token or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", token):
+            return
+        norm = token.lower()
+        if norm in sql_keywords:
+            return
+        if norm not in preferred_by_norm:
+            preferred_by_norm[norm] = token
+
+    for op in ir.operations:
+        sql_text_op = substitute_known_variables(str(op.metadata.get("sql_text", "")), ir.variables)
+        if not sql_text_op:
+            continue
+        upper_stmt = sql_text_op.upper()
+        if upper_stmt.startswith("INSERT INTO"):
+            m = re.search(r"\bSELECT\b(.*?)\bFROM\b", sql_text_op, flags=re.IGNORECASE | re.DOTALL)
+            if m:
+                for item in _split_select_items(m.group(1)):
+                    item = item.strip().rstrip(",")
+                    alias_m = re.search(r"\bAS\s+([A-Za-z_][A-Za-z0-9_]*)\s*$", item, flags=re.IGNORECASE)
+                    if alias_m:
+                        _register_col(alias_m.group(1))
+                    # Qualified col: a.col -> col
+                    qual_m = re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*\.([A-Za-z_][A-Za-z0-9_]*)", item)
+                    if qual_m:
+                        _register_col(qual_m.group(1))
+                        continue
+                    if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", item):
+                        _register_col(item)
+        elif upper_stmt.startswith("UPDATE "):
+            for match in re.finditer(r"\b([A-Za-z_][A-Za-z0-9_]*)\s*=", sql_text_op):
+                _register_col(match.group(1))
+            for match in re.finditer(
+                r"\bWHERE\s+([A-Za-z_][A-Za-z0-9_]*)\s+IN\s*\(",
+                sql_text_op,
+                flags=re.IGNORECASE | re.DOTALL,
+            ):
+                _register_col(match.group(1))
+            for match in re.finditer(
+                r"\bBETWEEN\s+([A-Za-z_][A-Za-z0-9_]*)\s+AND\s+([A-Za-z_][A-Za-z0-9_]*)",
+                sql_text_op,
+                flags=re.IGNORECASE,
+            ):
+                _register_col(match.group(1))
+                _register_col(match.group(2))
+
+    current = sql_text
+    for norm, preferred in sorted(preferred_by_norm.items(), key=lambda item: len(item[0]), reverse=True):
+        pattern = re.compile(rf"(?<![A-Za-z0-9_]){re.escape(norm)}(?![A-Za-z0-9_])", flags=re.IGNORECASE)
+        current = pattern.sub(preferred, current)
+    return current
+
+
 def _normalize_target_asset(asset: str) -> str:
     normalized = _normalize_asset(asset)
     # Some extracted write targets can include trailing partition spec.
@@ -252,7 +360,8 @@ def apply_prompt_compliance_pass(
         current = normalize_and_dedupe_statements(current, ir)
     if strip_partition_for_visual:
         current = strip_partition_clause_in_inserts(current)
-        current = rewrite_temp_hop_writes_to_direct_source(current, ir)
+        # Keep temp-hop lineage in visual profile to avoid duplicate full-source
+        # inserts for temp and final targets.
         current = fix_missing_rownum_wrapper_parentheses(current)
         current = normalize_and_dedupe_statements(current, ir)
     if add_partition_surrogate:
@@ -343,6 +452,127 @@ def normalize_tsql_placeholders(sql_text: str) -> str:
     # Unquoted brace placeholders -> T-SQL variable token.
     current = re.sub(r"\{([A-Za-z_][A-Za-z0-9_]*)\}", r"@\1", current)
     return current
+
+
+def _has_balanced_parentheses(statement: str) -> bool:
+    depth = 0
+    in_single = False
+    in_double = False
+    for ch in statement:
+        if ch == "'" and not in_double:
+            in_single = not in_single
+            continue
+        if ch == '"' and not in_single:
+            in_double = not in_double
+            continue
+        if in_single or in_double:
+            continue
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth < 0:
+                return False
+    return depth == 0
+
+
+def drop_syntax_invalid_write_statements(sql_text: str) -> str:
+    if not sql_text:
+        return sql_text
+
+    statements = [s.strip() for s in split_sql_statements(sql_text) if s.strip()]
+    if not statements:
+        return sql_text
+
+    def _is_write(stmt: str) -> bool:
+        up = stmt.upper()
+        return up.startswith("INSERT INTO") or up.startswith("UPDATE ") or up.startswith("MERGE INTO")
+
+    try:
+        import sqlglot  # type: ignore
+    except Exception:
+        sqlglot = None
+
+    kept: list[str] = []
+    if sqlglot is not None:
+        for stmt in statements:
+            if not _is_write(stmt):
+                continue
+            try:
+                sqlglot.parse_one(stmt, read="hive")
+            except Exception:
+                continue
+            kept.append(stmt if stmt.endswith(";") else f"{stmt};")
+        if kept:
+            return "\n".join(kept).strip()
+
+    # Heuristic fallback when parser is unavailable or everything failed parse:
+    # drop obviously truncated fragments like trailing ",;" before next statement.
+    heuristic_kept: list[str] = []
+    for stmt in statements:
+        if not _is_write(stmt):
+            continue
+        if re.search(r",\s*;\s*$", stmt):
+            continue
+        heuristic_kept.append(stmt if stmt.endswith(";") else f"{stmt};")
+    if heuristic_kept:
+        return "\n".join(heuristic_kept).strip()
+    return sql_text
+
+
+def uniquify_reused_subquery_aliases(sql_text: str) -> str:
+    if not sql_text:
+        return sql_text
+
+    out_statements: list[str] = []
+    alias_decl_re = re.compile(r"\)\s+AS\s+([A-Za-z_][A-Za-z0-9_]*)", flags=re.IGNORECASE)
+
+    for stmt in split_sql_statements(sql_text):
+        current = stmt.strip()
+        if not current:
+            continue
+
+        aliases = [m.group(1) for m in alias_decl_re.finditer(current)]
+        if not aliases:
+            out_statements.append(current if current.endswith(";") else f"{current};")
+            continue
+
+        totals: dict[str, int] = {}
+        for alias in aliases:
+            key = alias.lower()
+            totals[key] = totals.get(key, 0) + 1
+
+        seen: dict[str, int] = {}
+
+        def _replace_decl(match: re.Match[str]) -> str:
+            alias = match.group(1)
+            key = alias.lower()
+            total = totals.get(key, 0)
+            seen_idx = seen.get(key, 0) + 1
+            seen[key] = seen_idx
+            # Keep the last occurrence as canonical alias; rename earlier duplicates.
+            if total > 1 and seen_idx < total:
+                return f") AS {alias}_{seen_idx}"
+            return match.group(0)
+
+        rewritten = alias_decl_re.sub(_replace_decl, current)
+
+        # For common nested-select pattern, align first "SELECT alias.*" with first renamed alias.
+        for alias_lower, total in totals.items():
+            if total <= 1:
+                continue
+            original = next((a for a in aliases if a.lower() == alias_lower), alias_lower)
+            rewritten = re.sub(
+                rf"\bSELECT\s+{re.escape(original)}\.\*",
+                f"SELECT {original}_1.*",
+                rewritten,
+                count=1,
+                flags=re.IGNORECASE,
+            )
+
+        out_statements.append(rewritten if rewritten.endswith(";") else f"{rewritten};")
+
+    return "\n".join(out_statements).strip()
 
 
 def _extract_tables_from_statement(statement: str) -> list[str]:
@@ -679,30 +909,9 @@ def rewrite_temp_hop_writes_to_direct_source(sql_text: str, ir: LineageIR) -> st
 
 
 def fix_missing_rownum_wrapper_parentheses(sql_text: str) -> str:
-    if not sql_text:
-        return sql_text
-    statements: list[str] = []
-    for stmt in split_sql_statements(sql_text):
-        current = stmt.strip()
-        if not current:
-            continue
-        # Repair a common truncation shape:
-        #   ) AS alias WHERE RN = 1 ) AS alias ON ...
-        # where one wrapper ") AS alias" before WHERE was dropped.
-        pattern = re.compile(
-            r"\)\s+AS\s+([A-Za-z_][A-Za-z0-9_]*)\s+WHERE\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*1\s+\)\s+AS\s+\1\s+ON\b",
-            flags=re.IGNORECASE,
-        )
-        for match in pattern.finditer(current):
-            alias = match.group(1)
-            rn_col = match.group(2)
-            fixed_fragment = f") AS {alias} ) AS {alias} WHERE {rn_col} = 1 ) AS {alias} ON"
-            if fixed_fragment.lower() in current.lower():
-                continue
-            current = f"{current[:match.start()]}{fixed_fragment}{current[match.end():]}"
-            break
-        statements.append(current if current.endswith(";") else f"{current};")
-    return "\n".join(statements).strip()
+    # Conservative no-op: previous attempts to reshape ROW_NUMBER wrappers
+    # could over-collapse nested subqueries and produce invalid JOIN syntax.
+    return sql_text
 
 
 def fix_missing_subquery_closing_parenthesis(sql_text: str) -> str:
@@ -735,23 +944,14 @@ def fix_missing_join_wrapper_parentheses(sql_text: str) -> str:
         current = stmt.strip()
         if not current:
             continue
-        if "LEFT JOIN (" not in current.upper():
-            statements.append(current if current.endswith(";") else f"{current};")
-            continue
-        # Repair shape:
-        #   LEFT JOIN ( ... FROM ( ... ) AS alias ON ...
-        # where one wrapper ") AS alias" before ON is missing.
-        pattern = re.compile(
-            r"\)\s+AS\s+([A-Za-z_][A-Za-z0-9_]*)\s+ON\b",
+        # Normalize duplicated wrapper aliases:
+        #   ) AS alias ) AS alias ON -> ) AS alias ON
+        current = re.sub(
+            r"\)\s+AS\s+([A-Za-z_][A-Za-z0-9_]*)\s+\)\s+AS\s+\1\s+ON\b",
+            r") AS \1 ON",
+            current,
             flags=re.IGNORECASE,
         )
-        for match in pattern.finditer(current):
-            alias = match.group(1)
-            fixed_fragment = f") AS {alias} ) AS {alias} ON"
-            if fixed_fragment.lower() in current.lower():
-                continue
-            current = f"{current[:match.start()]}{fixed_fragment}{current[match.end():]}"
-            break
         statements.append(current if current.endswith(";") else f"{current};")
     return "\n".join(statements).strip()
 
@@ -1421,10 +1621,19 @@ def run_agentic_pipeline(cfg: RuntimeConfig) -> int:
     cfg.output_dir.mkdir(parents=True, exist_ok=True)
     cfg.report_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"Using model: {cfg.model}")
-    print(f"SQL refine/repair model: {cfg.sql_repair_model or cfg.model}")
-    print(f"SQL refine/repair endpoint: {cfg.sql_repair_base_url or cfg.base_url}")
-    print(f"Endpoint: {cfg.base_url}")
+    python_model = cfg.python_model or cfg.model
+    python_base_url = cfg.python_base_url or cfg.base_url
+    sql_model = cfg.model
+    sql_base_url = cfg.base_url
+    sql_repair_model = cfg.sql_repair_model or sql_model
+    sql_repair_base_url = cfg.sql_repair_base_url or sql_base_url
+
+    print(f"Python structuring model: {python_model}")
+    print(f"Python structuring endpoint: {python_base_url}")
+    print(f"SQL generation model: {sql_model}")
+    print(f"SQL generation endpoint: {sql_base_url}")
+    print(f"SQL repair model: {sql_repair_model}")
+    print(f"SQL repair endpoint: {sql_repair_base_url}")
     print(f"Found {len(python_files)} Python file(s).")
     print(f"Chunk lines/overlap: {cfg.chunk_lines}/{cfg.overlap_lines}")
     print(f"Prompt compliance pass: {'yes' if cfg.prompt_compliance_pass else 'no'}")
@@ -1433,7 +1642,17 @@ def run_agentic_pipeline(cfg: RuntimeConfig) -> int:
         print(f"Compliance profile: {cfg.compliance_profile}")
         print(f"Compliance no-WHERE: {'yes' if cfg.compliance_no_where else 'no'}")
     print(f"Dry run: {'yes' if cfg.dry_run else 'no'}")
-    logger.info("pipeline_start", extra={"extras": {"files": len(python_files), "model": cfg.model}})
+    logger.info(
+        "pipeline_start",
+        extra={
+            "extras": {
+                "files": len(python_files),
+                "python_model": python_model,
+                "sql_generation_model": sql_model,
+                "sql_repair_model": sql_repair_model,
+            }
+        },
+    )
     run_started = time.perf_counter()
     total_files = len(python_files)
     success_count = 0
@@ -1442,8 +1661,6 @@ def run_agentic_pipeline(cfg: RuntimeConfig) -> int:
         file_started = time.perf_counter()
         pct = int((file_idx / max(1, total_files)) * 100)
         print(f"[{file_idx}/{total_files} | {pct}%] Starting {py_file.name}")
-        sql_model = cfg.sql_repair_model or cfg.model
-        sql_base_url = cfg.sql_repair_base_url or cfg.base_url
         code = read_text_file(py_file)
         if len(code.encode("utf-8")) > cfg.max_file_bytes:
             raise SystemExit(
@@ -1460,9 +1677,9 @@ def run_agentic_pipeline(cfg: RuntimeConfig) -> int:
             user_prompt = build_chunk_user_prompt(py_file.name, unit)
             unit_started = time.perf_counter()
             sql_raw = call_chat_completion(
-                base_url=cfg.base_url,
+                base_url=python_base_url,
                 api_key=cfg.api_key,
-                model=cfg.model,
+                model=python_model,
                 system_prompt=chunk_system_prompt,
                 user_content=user_prompt,
                 temperature=cfg.temperature,
@@ -1561,9 +1778,9 @@ def run_agentic_pipeline(cfg: RuntimeConfig) -> int:
             print(f"  validate: retry {retries}/{cfg.max_validation_retries}")
             repair_prompt = build_validation_user_prompt(py_file.name, best_sql, best_validation.errors)
             repaired_raw = call_chat_completion(
-                base_url=sql_base_url,
+                base_url=sql_repair_base_url,
                 api_key=cfg.api_key,
-                model=sql_model,
+                model=sql_repair_model,
                 system_prompt=validation_system_prompt,
                 user_content=repair_prompt,
                 temperature=cfg.temperature,
@@ -1652,6 +1869,8 @@ def run_agentic_pipeline(cfg: RuntimeConfig) -> int:
 
         # Final safety pass for unresolved python variable tokens.
         final_sql = substitute_known_variables(final_sql, ir.variables)
+        final_sql = enforce_asset_case_from_ir(final_sql, ir)
+        final_sql = enforce_column_case_from_ir(final_sql, ir)
         if cfg.dialect == "tsql":
             final_sql = fix_missing_window_by_spacing(final_sql)
             final_sql = normalize_tsql_placeholders(final_sql)
@@ -1676,6 +1895,34 @@ def run_agentic_pipeline(cfg: RuntimeConfig) -> int:
                 if cfg.compliance_profile != "baseline_sql_parity":
                     final_sql = enforce_known_columns(final_sql, known_insert_cols)
                     final_sql = normalize_and_dedupe_statements(final_sql, ir)
+
+        # Last-mile guardrail: never persist hallucinated/non-evidenced sources in non-parity modes.
+        if final_sql and cfg.compliance_profile != "baseline_sql_parity":
+            filtered_sql = drop_hallucinated_and_synthetic(final_sql, ir)
+            if not filtered_sql:
+                fallback_cols = extract_known_insert_columns(ir)
+                temp_columns = extract_known_temp_columns(ir)
+                fallback_cols.update(temp_columns)
+                fallback_cols.update(build_known_columns_from_temp_sources(ir, temp_columns))
+                filtered_sql = build_recovery_sql_from_ir(ir, fallback_cols)
+            if filtered_sql != final_sql:
+                final_sql = filtered_sql
+                validation = validate_sql(
+                    final_sql,
+                    ir,
+                    enforce_explicit_insert_columns=True,
+                    enforce_required_targets=True,
+                    enforce_evidence_sources=True,
+                )
+                if cfg.strict_validation and not validation.ok:
+                    raise ValidationFailure(
+                        f"Validation failed for {py_file.name}: {', '.join(validation.errors)}"
+                    )
+
+        # Remove syntactically broken write fragments while preserving valid lineage statements.
+        if final_sql:
+            final_sql = uniquify_reused_subquery_aliases(final_sql)
+            final_sql = drop_syntax_invalid_write_statements(final_sql)
 
         if not cfg.dry_run:
             out_file = cfg.output_dir / f"{py_file.stem}.sql"
@@ -1705,9 +1952,12 @@ def run_agentic_pipeline(cfg: RuntimeConfig) -> int:
             retries=retries,
             statement_count=len(split_sql_statements(final_sql)) if final_sql else 0,
             metadata={
-                "model": cfg.model,
-                "sql_repair_model": sql_model,
-                "sql_repair_base_url": sql_base_url,
+                "python_structuring_model": python_model,
+                "python_structuring_base_url": python_base_url,
+                "sql_generation_model": sql_model,
+                "sql_generation_base_url": sql_base_url,
+                "sql_repair_model": sql_repair_model,
+                "sql_repair_base_url": sql_repair_base_url,
                 "chunk_max_tokens": cfg.chunk_max_tokens,
                 "refine_max_tokens": cfg.refine_max_tokens,
                 "dry_run": cfg.dry_run,

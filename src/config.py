@@ -6,6 +6,8 @@ from typing import Optional
 
 @dataclass
 class RuntimeConfig:
+    python_base_url: str
+    python_model: str
     base_url: str
     sql_repair_base_url: Optional[str]
     api_key: str
@@ -49,11 +51,17 @@ def build_runtime_config(args: object) -> RuntimeConfig:
         getattr(args, "baseline_sql_dir", os.getenv("BASELINE_SQL_DIR", "~/Downloads/SQL"))
     ).strip()
     baseline_sql_dir = Path(baseline_sql_dir_raw).expanduser().resolve() if baseline_sql_dir_raw else None
+    sql_base_url = os.getenv("LOCAL_LLM_BASE_URL", "http://127.0.0.1:8000/v1")
+    sql_model = os.getenv("LOCAL_LLM_MODEL", "ibm-granite/granite-3.1-3b-a800m-instruct")
+    python_base_url = (getattr(args, "python_base_url", "") or os.getenv("LOCAL_LLM_PYTHON_BASE_URL", "")).strip()
+    python_model = (getattr(args, "python_model", "") or os.getenv("LOCAL_LLM_PYTHON_MODEL", "")).strip()
     return RuntimeConfig(
-        base_url=os.getenv("LOCAL_LLM_BASE_URL", "http://127.0.0.1:8000/v1"),
+        python_base_url=python_base_url or sql_base_url,
+        python_model=python_model or sql_model,
+        base_url=sql_base_url,
         sql_repair_base_url=(args.sql_repair_base_url or os.getenv("LOCAL_LLM_SQL_REPAIR_BASE_URL", "")).strip() or None,
         api_key=os.getenv("LOCAL_LLM_API_KEY", ""),
-        model=os.getenv("LOCAL_LLM_MODEL", "mlx-community/Qwen2.5-Coder-3B-Instruct-4bit"),
+        model=sql_model,
         sql_repair_model=(args.sql_repair_model or os.getenv("LOCAL_LLM_SQL_REPAIR_MODEL", "")).strip() or None,
         temperature=args.temperature,
         request_timeout=args.request_timeout,

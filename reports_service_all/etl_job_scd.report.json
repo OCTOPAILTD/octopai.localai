@@ -1,0 +1,82 @@
+{
+  "file_path": "/private/var/folders/t2/_qh5vpj96fz4t8k4st70wn1c0000gn/T/py2sql_pfem6t2x/etl_job_scd.py",
+  "unit_count": 3,
+  "candidate_sql_count": 3,
+  "validation_ok": true,
+  "validation_errors": [],
+  "retries": 0,
+  "statement_count": 2,
+  "metadata": {
+    "python_structuring_model": "ibm-granite/granite-3.1-3b-a800m-instruct",
+    "python_structuring_base_url": "http://127.0.0.1:8000/v1",
+    "sql_generation_model": "ibm-granite/granite-3.1-3b-a800m-instruct",
+    "sql_generation_base_url": "http://127.0.0.1:8000/v1",
+    "sql_repair_model": "ibm-granite/granite-3.1-3b-a800m-instruct",
+    "sql_repair_base_url": "http://127.0.0.1:8000/v1",
+    "chunk_max_tokens": 256,
+    "refine_max_tokens": 1024,
+    "dry_run": false,
+    "detected_ops": 5,
+    "baseline_parity": {
+      "file_name": "etl_job_scd.sql",
+      "baseline_found": true,
+      "statement_count_match": false,
+      "statement_order_match": false,
+      "target_sequence_match": false,
+      "projection_policy_match": false,
+      "clause_shape_match": false,
+      "score": 0.0,
+      "details": {
+        "baseline_statement_count": 1,
+        "generated_statement_count": 2,
+        "baseline_kinds": [
+          "insert"
+        ],
+        "generated_kinds": [
+          "insert",
+          "insert"
+        ],
+        "baseline_targets": [
+          "prd_acl_datalake.mart_customer_icons_scd_prod"
+        ],
+        "generated_targets": [
+          "prd_acl_datalake.mart_customer_icons_scd_prod",
+          "prd_acl_datalake.mart_customer_icons_scd_prod"
+        ],
+        "baseline_projection_policy": [
+          "explicit"
+        ],
+        "generated_projection_policy": [
+          "explicit",
+          "explicit"
+        ],
+        "baseline_shape": [
+          {
+            "has_with": 0,
+            "union_all": 0,
+            "where": 0,
+            "partition": 0,
+            "left_join_subquery": 0
+          }
+        ],
+        "generated_shape": [
+          {
+            "has_with": 0,
+            "union_all": 0,
+            "where": 0,
+            "partition": 0,
+            "left_join_subquery": 0
+          },
+          {
+            "has_with": 0,
+            "union_all": 0,
+            "where": 0,
+            "partition": 0,
+            "left_join_subquery": 0
+          }
+        ]
+      }
+    }
+  },
+  "generated_at": "2026-03-09T14:33:13.913583+00:00"
+}

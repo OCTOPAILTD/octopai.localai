@@ -11,6 +11,7 @@ class ParseRequest(BaseModel):
     max_tokens: int = Field(default=1536)
     strict_validation: bool = Field(default=False)
     dialect: str = Field(default="tsql")
+    compliance_profile: str = Field(default="strict")
 
 
 class ParseResponse(BaseModel):

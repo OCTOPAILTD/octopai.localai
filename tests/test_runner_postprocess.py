@@ -33,6 +33,10 @@ from src.runner import (
     normalize_and_dedupe_statements,
     reorder_statements_by_ir,
     substitute_known_variables,
+    enforce_asset_case_from_ir,
+    enforce_column_case_from_ir,
+    drop_syntax_invalid_write_statements,
+    uniquify_reused_subquery_aliases,
 )
 from src.ir.models import CodeSpan, LineageIR, LineageOp
 
@@ -43,6 +47,93 @@ class RunnerPostprocessTest(unittest.TestCase):
         out = substitute_known_variables(sql, {"STAGING_TABLE": "db.stage"})
         self.assertIn("db.stage", out)
         self.assertNotIn("{STAGING_TABLE}", out)
+
+    def test_enforce_asset_case_from_ir(self) -> None:
+        ir = LineageIR(
+            file_path="dummy.py",
+            operations=[
+                LineageOp(
+                    op_id="1",
+                    op_type="write",
+                    code_span=CodeSpan(1, 1),
+                    raw_line="",
+                    source_assets=["PRD_ACL_DATALAKE.MART_CUSTOMER_ICONS_TEMP"],
+                    target_assets=["PRD_ACL_DATALAKE.MART_CUSTOMER_ICONS_SCD_PROD"],
+                )
+            ],
+            variables={
+                "TARGET_TABLE": "PRD_ACL_DATALAKE.MART_CUSTOMER_ICONS_SCD_PROD",
+                "STAGING_TABLE": "PRD_ACL_DATALAKE.MART_CUSTOMER_ICONS_TEMP",
+            },
+        )
+        sql = (
+            "insert into prd_acl_datalake.mart_customer_icons_scd_prod "
+            "select * from prd_acl_datalake.mart_customer_icons_temp;"
+        )
+        out = enforce_asset_case_from_ir(sql, ir)
+        self.assertIn("PRD_ACL_DATALAKE.MART_CUSTOMER_ICONS_SCD_PROD", out)
+        self.assertIn("PRD_ACL_DATALAKE.MART_CUSTOMER_ICONS_TEMP", out)
+
+    def test_enforce_column_case_from_ir(self) -> None:
+        ir = LineageIR(
+            file_path="dummy.py",
+            operations=[
+                LineageOp(
+                    op_id="1",
+                    op_type="write",
+                    code_span=CodeSpan(1, 1),
+                    raw_line="",
+                    source_assets=["PRD_ACL_DATALAKE.MART_CUSTOMER_ICONS_TEMP"],
+                    target_assets=["PRD_ACL_DATALAKE.MART_CUSTOMER_ICONS_SCD_PROD"],
+                    metadata={
+                        "sql_text": (
+                            "INSERT INTO PRD_ACL_DATALAKE.MART_CUSTOMER_ICONS_SCD_PROD "
+                            "SELECT CIF_KEY, END_DATE, START_DATE "
+                            "FROM PRD_ACL_DATALAKE.MART_CUSTOMER_ICONS_TEMP"
+                        )
+                    },
+                )
+            ],
+        )
+        sql = (
+            "insert into PRD_ACL_DATALAKE.MART_CUSTOMER_ICONS_SCD_PROD "
+            "select cif_key, end_date, start_date "
+            "from PRD_ACL_DATALAKE.MART_CUSTOMER_ICONS_TEMP;"
+        )
+        out = enforce_column_case_from_ir(sql, ir)
+        self.assertIn("select CIF_KEY, END_DATE, START_DATE", out)
+
+    def test_drop_syntax_invalid_write_statements(self) -> None:
+        sql = (
+            "INSERT INTO tgt SELECT a, b FROM src;\n"
+            "INSERT INTO tgt SELECT a, b, ;\n"
+            "UPDATE tgt SET a = a FROM src;"
+        )
+        out = drop_syntax_invalid_write_statements(sql)
+        self.assertIn("INSERT INTO tgt SELECT a, b FROM src;", out)
+        self.assertIn("UPDATE tgt SET a = a FROM src;", out)
+        self.assertNotIn("SELECT a, b, ;", out)
+
+    def test_uniquify_reused_subquery_aliases(self) -> None:
+        sql = (
+            "INSERT INTO t "
+            "SELECT CHANNEL.* FROM (SELECT CHANNEL.*, ROW_NUMBER() OVER(PARTITION BY id ORDER BY dt DESC) RN "
+            "FROM (SELECT id, dt FROM src) AS CHANNEL) AS CHANNEL WHERE RN = 1) AS CHANNEL ON 1=1;"
+        )
+        out = uniquify_reused_subquery_aliases(sql)
+        self.assertIn(") AS CHANNEL_1", out)
+        self.assertIn(") AS CHANNEL_2", out)
+        self.assertIn(") AS CHANNEL ON", out)
+        self.assertIn("SELECT CHANNEL_1.*", out)
+
+    def test_fix_missing_rownum_wrapper_parentheses_noop(self) -> None:
+        sql = (
+            "INSERT INTO t SELECT * FROM src "
+            "LEFT JOIN (SELECT * FROM (SELECT * FROM x) AS CHANNEL ) AS CHANNEL "
+            "WHERE RN = 1 ) AS CHANNEL ON src.id = CHANNEL.id;"
+        )
+        out = fix_missing_rownum_wrapper_parentheses(sql)
+        self.assertEqual(out, sql)
 
     def test_enforce_known_columns(self) -> None:
         sql = "INSERT INTO target_tbl SELECT * FROM src_tbl;"

@@ -1,54 +1,43 @@
 {
-  "file_name": "etl_job.sql",
+  "file_name": "MART_DPK_JT.sql",
   "baseline_found": true,
-  "statement_count_match": false,
+  "statement_count_match": true,
   "statement_order_match": false,
-  "target_sequence_match": false,
+  "target_sequence_match": true,
   "projection_policy_match": false,
   "clause_shape_match": false,
-  "score": 0.0,
+  "score": 0.4,
   "details": {
-    "baseline_statement_count": 4,
-    "generated_statement_count": 0,
+    "baseline_statement_count": 2,
+    "generated_statement_count": 2,
     "baseline_kinds": [
-      "insert",
-      "insert",
+      "with_insert",
+      "insert"
+    ],
+    "generated_kinds": [
       "insert",
       "insert"
     ],
-    "generated_kinds": [],
     "baseline_targets": [
       "#temp_table",
-      "prd_acl_datalake.master_cta",
-      "prd_acl_datalake.master_cta",
-      "prd_acl_datalake.master_cta"
+      "prd_acl_datalake.mart_dpk_jt"
     ],
-    "generated_targets": [],
+    "generated_targets": [
+      "#temp_table",
+      "prd_acl_datalake.mart_dpk_jt"
+    ],
     "baseline_projection_policy": [
-      "star",
-      "star",
-      "star",
+      "explicit",
       "star"
     ],
-    "generated_projection_policy": [],
+    "generated_projection_policy": [
+      "explicit",
+      "explicit"
+    ],
     "baseline_shape": [
       {
-        "has_with": 0,
+        "has_with": 1,
         "union_all": 1,
-        "where": 1,
-        "partition": 0,
-        "left_join_subquery": 1
-      },
-      {
-        "has_with": 0,
-        "union_all": 0,
-        "where": 0,
-        "partition": 0,
-        "left_join_subquery": 0
-      },
-      {
-        "has_with": 0,
-        "union_all": 0,
         "where": 0,
         "partition": 0,
         "left_join_subquery": 0
@@ -61,6 +50,21 @@
         "left_join_subquery": 0
       }
     ],
-    "generated_shape": []
+    "generated_shape": [
+      {
+        "has_with": 0,
+        "union_all": 1,
+        "where": 2,
+        "partition": 0,
+        "left_join_subquery": 0
+      },
+      {
+        "has_with": 0,
+        "union_all": 0,
+        "where": 0,
+        "partition": 0,
+        "left_join_subquery": 0
+      }
+    ]
   }
 }

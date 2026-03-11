@@ -159,6 +159,28 @@ def _extract_target_assets(statement: str) -> set[str]:
     return assets
 
 
+def _extract_source_assets(statement: str) -> set[str]:
+    cleaned = _strip_sql_comments(statement)
+    assets: set[str] = set()
+    for match in re.findall(
+        r"\b(?:FROM|JOIN|USING)\s+([A-Za-z0-9_#\".`:/\\\-\{\}]+)",
+        cleaned,
+        flags=re.IGNORECASE,
+    ):
+        assets.add(_normalize_asset(match))
+    return assets
+
+
+def _is_allowed_asset(asset: str, allowed_assets: set[str]) -> bool:
+    if asset in allowed_assets:
+        return True
+    if asset.startswith("#") and asset[1:] in allowed_assets:
+        return True
+    if f"#{asset}" in allowed_assets:
+        return True
+    return False
+
+
 def _is_synthetic_temp_chain(statement: str) -> bool:
     cleaned = _strip_sql_comments(statement)
     tgt_match = re.search(r"\bINSERT\s+INTO\s+(#temp_table_\d+)\b", cleaned, flags=re.IGNORECASE)
@@ -182,6 +204,7 @@ def drop_hallucinated_and_synthetic(sql_text: str, ir: LineageIR) -> str:
         for value in ir.variables.values()
         if isinstance(value, str) and value.strip()
     )
+    allowed_assets.update(_normalize_asset(temp) for temp in ir.allowed_temp_assets if temp)
     # Always allow temp objects and unresolved placeholders.
     filtered: list[str] = []
     for stmt in split_sql_statements(sql_text):
@@ -211,7 +234,7 @@ def drop_hallucinated_and_synthetic(sql_text: str, ir: LineageIR) -> str:
                 for asset in target_assets
                 if not asset.startswith("#")
                 and "{" not in asset
-                and asset not in allowed_assets
+                and not _is_allowed_asset(asset, allowed_assets)
             ]
             if len(unknown_targets) == len(target_assets):
                 continue
@@ -222,9 +245,25 @@ def drop_hallucinated_and_synthetic(sql_text: str, ir: LineageIR) -> str:
             for asset in stmt_assets
             if not asset.startswith("#")
             and "{" not in asset
-            and asset not in allowed_assets
+            and not _is_allowed_asset(asset, allowed_assets)
         ]
         if unknown_assets and not target_assets:
+            continue
+
+        source_assets = _extract_source_assets(current)
+        cte_names = {
+            _normalize_asset(cte)
+            for cte in re.findall(r"\bWITH\s+([A-Za-z_][A-Za-z0-9_]*)\s+AS\s*\(", current, flags=re.IGNORECASE)
+        }
+        unknown_sources = [
+            asset
+            for asset in source_assets
+            if asset not in cte_names
+            and not asset.startswith("#")
+            and "{" not in asset
+            and not _is_allowed_asset(asset, allowed_assets)
+        ]
+        if unknown_sources:
             continue
         filtered.append(current if current.endswith(";") else f"{current};")
     return "\n".join(filtered).strip()

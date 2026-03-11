@@ -1,23 +1,21 @@
 {
-  "file_path": "/Users/noamketer/Octopai/octopai.localai/python_files/etl_job.py",
+  "file_path": "/private/var/folders/t2/_qh5vpj96fz4t8k4st70wn1c0000gn/T/py2sql_izhuakx3/etl_job.py",
   "unit_count": 3,
-  "candidate_sql_count": 1,
-  "validation_ok": false,
-  "validation_errors": [
-    "No SQL statements generated for file with detected operations."
-  ],
+  "candidate_sql_count": 3,
+  "validation_ok": true,
+  "validation_errors": [],
   "retries": 0,
-  "statement_count": 0,
+  "statement_count": 2,
   "metadata": {
-    "python_structuring_model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+    "python_structuring_model": "ibm-granite/granite-3.1-3b-a800m-instruct",
     "python_structuring_base_url": "http://127.0.0.1:8000/v1",
-    "sql_generation_model": "Snowflake/Arctic-Text2SQL-R1-7B",
+    "sql_generation_model": "ibm-granite/granite-3.1-3b-a800m-instruct",
     "sql_generation_base_url": "http://127.0.0.1:8000/v1",
-    "sql_repair_model": "Snowflake/Arctic-Text2SQL-R1-7B",
+    "sql_repair_model": "ibm-granite/granite-3.1-3b-a800m-instruct",
     "sql_repair_base_url": "http://127.0.0.1:8000/v1",
-    "chunk_max_tokens": 1024,
-    "refine_max_tokens": 4096,
-    "dry_run": true,
+    "chunk_max_tokens": 256,
+    "refine_max_tokens": 1024,
+    "dry_run": false,
     "detected_ops": 4,
     "baseline_parity": {
       "file_name": "etl_job.sql",
@@ -30,28 +28,37 @@
       "score": 0.0,
       "details": {
         "baseline_statement_count": 4,
-        "generated_statement_count": 0,
+        "generated_statement_count": 2,
         "baseline_kinds": [
           "insert",
           "insert",
           "insert",
           "insert"
         ],
-        "generated_kinds": [],
+        "generated_kinds": [
+          "insert",
+          "insert"
+        ],
         "baseline_targets": [
           "#temp_table",
           "prd_acl_datalake.master_cta",
           "prd_acl_datalake.master_cta",
           "prd_acl_datalake.master_cta"
         ],
-        "generated_targets": [],
+        "generated_targets": [
+          "#temp_table",
+          "prd_acl_datalake.master_cta"
+        ],
         "baseline_projection_policy": [
           "star",
           "star",
           "star",
           "star"
         ],
-        "generated_projection_policy": [],
+        "generated_projection_policy": [
+          "star",
+          "explicit"
+        ],
         "baseline_shape": [
           {
             "has_with": 0,
@@ -82,9 +89,24 @@
             "left_join_subquery": 0
           }
         ],
-        "generated_shape": []
+        "generated_shape": [
+          {
+            "has_with": 0,
+            "union_all": 1,
+            "where": 2,
+            "partition": 0,
+            "left_join_subquery": 1
+          },
+          {
+            "has_with": 0,
+            "union_all": 0,
+            "where": 0,
+            "partition": 0,
+            "left_join_subquery": 0
+          }
+        ]
       }
     }
   },
-  "generated_at": "2026-03-08T14:48:38.404331+00:00"
+  "generated_at": "2026-03-09T14:32:38.804888+00:00"
 }

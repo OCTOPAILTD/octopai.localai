@@ -13,6 +13,16 @@ def main() -> int:
     parser.add_argument("--prompt-file", default="prompt_short.txt", help="Base SQL generation prompt file.")
     parser.add_argument("--output-dir", default="sql_outputs_agentic", help="Directory for SQL outputs.")
     parser.add_argument(
+        "--python-model",
+        default="",
+        help="Optional model override for Python structuring/chunk understanding stage.",
+    )
+    parser.add_argument(
+        "--python-base-url",
+        default="",
+        help="Optional endpoint override for Python structuring/chunk understanding stage.",
+    )
+    parser.add_argument(
         "--sql-repair-model",
         default="",
         help="Optional model override for SQL refine/repair stages.",

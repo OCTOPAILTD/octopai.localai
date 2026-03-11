@@ -9,28 +9,37 @@
   "score": 0.0,
   "details": {
     "baseline_statement_count": 4,
-    "generated_statement_count": 0,
+    "generated_statement_count": 2,
     "baseline_kinds": [
       "insert",
       "insert",
       "insert",
       "insert"
     ],
-    "generated_kinds": [],
+    "generated_kinds": [
+      "insert",
+      "insert"
+    ],
     "baseline_targets": [
       "#temp_table",
       "prd_acl_datalake.master_cta",
       "prd_acl_datalake.master_cta",
       "prd_acl_datalake.master_cta"
     ],
-    "generated_targets": [],
+    "generated_targets": [
+      "#temp_table",
+      "prd_acl_datalake.master_cta"
+    ],
     "baseline_projection_policy": [
       "star",
       "star",
       "star",
       "star"
     ],
-    "generated_projection_policy": [],
+    "generated_projection_policy": [
+      "star",
+      "explicit"
+    ],
     "baseline_shape": [
       {
         "has_with": 0,
@@ -61,6 +70,21 @@
         "left_join_subquery": 0
       }
     ],
-    "generated_shape": []
+    "generated_shape": [
+      {
+        "has_with": 0,
+        "union_all": 1,
+        "where": 2,
+        "partition": 0,
+        "left_join_subquery": 1
+      },
+      {
+        "has_with": 0,
+        "union_all": 0,
+        "where": 0,
+        "partition": 0,
+        "left_join_subquery": 0
+      }
+    ]
   }
 }
