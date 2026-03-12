@@ -53,9 +53,9 @@ spec:
           # Liveness: restarts container if LocalAI is unhealthy
           livenessProbe:
             httpGet:
-              path: /healthz
+              path: /health
               port: 8080
-            initialDelaySeconds: 60    # LocalAI needs time to load model on startup
+            initialDelaySeconds: 60
             periodSeconds: 15
             timeoutSeconds: 5
             failureThreshold: 3
@@ -63,7 +63,7 @@ spec:
           # Readiness: controls when pod receives traffic
           readinessProbe:
             httpGet:
-              path: /readyz
+              path: /health
               port: 8080
             initialDelaySeconds: 30
             periodSeconds: 10
