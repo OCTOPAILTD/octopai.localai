@@ -69,6 +69,9 @@ pipeline {
         }
 
         stage('Build Images And Create The Tag') {
+            when {
+                expression { return params.RELOAD_SCM_ONLY == false }
+            }
             steps {
                 container('dind') {
                     sh 'ls'
@@ -82,6 +85,9 @@ pipeline {
         }
 
         stage('Pushing Image') {
+            when {
+                expression { return params.RELOAD_SCM_ONLY == false }
+            }
             steps {
                 container('dind') {
                     echo 'Starting Push To ACR'
@@ -94,6 +100,9 @@ pipeline {
         }
 
         stage('Deploy App') {
+            when {
+                expression { return params.RELOAD_SCM_ONLY == false }
+            }
             environment { ACR_IMG_URL = """$OCT_ACR"".azurecr.io""/localai:$B_ID""" }
             steps {
                 container('az-runner') {
@@ -152,6 +161,9 @@ pipeline {
         }
 
         stage('Update changes') {
+            when {
+                expression { return params.RELOAD_SCM_ONLY == false }
+            }
             steps {
                 container('jnlp') {
                     checkout([$class: 'GitSCM',
