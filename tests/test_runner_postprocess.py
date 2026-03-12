@@ -24,6 +24,7 @@ from src.runner import (
     fix_missing_window_by_spacing,
     fix_missing_rownum_wrapper_parentheses,
     normalize_tsql_placeholders,
+    normalize_visual_placeholders,
     keep_insert_select_statements,
     normalize_partition_clauses,
     remove_metric_and_noop_self_writes,
@@ -102,6 +103,12 @@ class RunnerPostprocessTest(unittest.TestCase):
         )
         out = enforce_column_case_from_ir(sql, ir)
         self.assertIn("select CIF_KEY, END_DATE, START_DATE", out)
+
+    def test_normalize_visual_placeholders(self) -> None:
+        sql = "WHERE d = @TANGGAL_POSISI AND d2 = @tanggal_posisi;"
+        out = normalize_visual_placeholders(sql)
+        self.assertIn("d = '{tanggal_posisi}'", out)
+        self.assertIn("d2 = '{tanggal_posisi}'", out)
 
     def test_drop_syntax_invalid_write_statements(self) -> None:
         sql = (

@@ -454,6 +454,17 @@ def normalize_tsql_placeholders(sql_text: str) -> str:
     return current
 
 
+def normalize_visual_placeholders(sql_text: str) -> str:
+    if not sql_text:
+        return sql_text
+
+    def _to_braced(match: re.Match[str]) -> str:
+        token = match.group(1)
+        return f"'{{{token.lower()}}}'"
+
+    return re.sub(r"@([A-Za-z_][A-Za-z0-9_]*)", _to_braced, sql_text)
+
+
 def _has_balanced_parentheses(statement: str) -> bool:
     depth = 0
     in_single = False
@@ -1874,6 +1885,8 @@ def run_agentic_pipeline(cfg: RuntimeConfig) -> int:
         if cfg.dialect == "tsql":
             final_sql = fix_missing_window_by_spacing(final_sql)
             final_sql = normalize_tsql_placeholders(final_sql)
+            if cfg.compliance_profile == "visual_parity":
+                final_sql = normalize_visual_placeholders(final_sql)
         # Final safety pass for column fidelity after any downstream rewrites.
         if final_sql:
             known_insert_cols = extract_known_insert_columns(ir)
